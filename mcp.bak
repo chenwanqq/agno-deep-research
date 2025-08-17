@@ -1,0 +1,19 @@
+bailian_search_sse_param  = SSEClientParams(
+    #url = "https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/sse/",
+    url = "https://dashscope.aliyuncs.com/api/v1/mcps/bochaai_search/sse",
+    headers = {
+        "Authorization": "Bearer {0}".format(os.getenv("OPENAI_API_KEY"))
+    },
+    timeout=120
+)
+
+bailian_search_tool = MCPTools(
+    #url = "https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/sse/",
+    url = "https://dashscope.aliyuncs.com/api/v1/mcps/bochaai_search/sse",
+    transport = "sse",
+    server_params=bailian_search_sse_param,
+    timeout_seconds=120,
+    include_tools=["bocha_web_search"]
+)
+
+mcp_tools = [bailian_search_tool]
