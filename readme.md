@@ -1,6 +1,10 @@
 # 搜索类agent探索
 
+**中文** | [English](readme_en.md)
+
 本项目旨在探索使用agno框架实现的探索类agent。本文档记录对项目的初步设计以及后续落地，既为人类用户编写，也为AI编程工具提供参考。
+
+> **开发说明**: 本项目主要以中文进行开发，英文相关的prompt内容会在后续逐渐补充。This project is primarily developed in Chinese. English-related prompt content and documentation will be gradually supplemented in future updates.
 
 ## 参考资料
 
@@ -20,9 +24,31 @@ pip install -r requirements.txt
 ```
 
 ### 运行
+
+`main.py` 是项目的统一命令行入口，提供了运行各种AI agent的接口。它具有以下功能：
+
+- **统一入口**: 通过命令行参数选择不同的agent
+- **Agent管理**: 自动检测和管理可用的agent
+- **错误处理**: 提供友好的错误信息和使用提示
+- **交互界面**: 包含项目横幅和详细的帮助信息
+
+#### 基本用法
 ```bash
-python main.py #按照返回指示添加其他参数
+# 查看所有可用的agent
+python main.py --list
+
+# 运行简单搜索agent
+python main.py simple-search
+
+# 查看帮助信息
+python main.py --help
+
+# 查看版本信息
+python main.py --version
 ```
+
+#### 当前支持的Agent
+- **simple-search**: 简单搜索Agent，使用搜索工具并总结网页内容
 
 
 ## 环境（向AI说明，仅限于开发者本人适用）
