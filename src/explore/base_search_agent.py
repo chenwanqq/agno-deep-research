@@ -7,10 +7,16 @@ import asyncio
 from agno.tools.tavily import TavilyTools
 from pydantic import BaseModel, Field
 from typing import List
+from agno.tools.googlesearch import GoogleSearchTools
+import toml
 
 load_dotenv()
+
+with open("config.toml", "r") as f:
+    config = toml.load(f)
+
 reasoning_model = OpenAIChat(
-    id=os.getenv("REASONING_MODEL_NAME"),
+    id=config["models"]["REASONING_MODEL_NAME"],
     api_key=os.getenv("OPENAI_API_KEY"),
     base_url=os.getenv("OPENAI_API_BASE_URL"),
     role_map={
@@ -23,7 +29,7 @@ reasoning_model = OpenAIChat(
 )
 
 instruct_model = OpenAIChat(
-    id=os.getenv("INSTRUCT_MODEL_NAME"),
+    id=config["models"]["INSTRUCT_MODEL_NAME"],
     api_key=os.getenv("OPENAI_API_KEY"),
     base_url=os.getenv("OPENAI_API_BASE_URL"),
     role_map={
@@ -47,24 +53,15 @@ today_str = datetime.now().strftime("%Y-%m-%d")
 async def run_search_agent() -> None:
     agent = Agent(
         model=reasoning_model,
-        description = "你是一个研究的指挥官，你负责对用户的问题进行分析，列出一个详尽的研究计划。在指定计划的过程中，你可以使用tavily搜索工具来搜索互联网，以获得最新的信息。你应该将用户的问题转化为5到7个独立的研究任务。".format(today_str),
+        description = "你是用户的顾问，在必要时可以使用搜索工具来搜索互联网，以获得最新的信息。你可以根据用户的请求，生成合适的搜索词，使用谷歌进行搜索；如果只是简单的问候或创意性的问题，则不需要进行搜索，以节省token".format(today_str),
         #show_tool_calls=True,
         #debug_mode=True,
         add_history_to_messages=True,
         #response_model=ResearchPlan,
         #use_json_mode=True,
-        tools = [TavilyTools(include_answer=False,format="json")],
+        #tools = [TavilyTools(include_answer=False,format="json")],
+        tools = [GoogleSearchTools(fixed_max_results=10)],
         tool_call_limit=1
-    )
-
-    format_agent = Agent(
-        model=instruct_model,
-        description="你是一个格式化工具，你负责将用户的问题转化为一个符合要求的格式。",
-        #show_tool_calls=False,
-        #debug_mode=False,
-        response_model=ResearchPlan,
-        use_json_mode=True,
-        add_history_to_messages=False,
     )
     
     while True:
@@ -77,7 +74,7 @@ async def run_search_agent() -> None:
             break
         
         #todo: 串联使用两个agent
-        #await agent.aprint_response(message,stream=True)
+        await agent.aprint_response(message,stream=True)
 
 if __name__ == "__main__":
     asyncio.run(run_search_agent())

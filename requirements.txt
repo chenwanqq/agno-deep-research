@@ -4,3 +4,7 @@ python-dotenv
 mcp
 wikipedia
 tavily-python
+beautifulsoup4
+lxml
+requests
+googlesearch-python
