@@ -106,5 +106,4 @@ flowchart TD
     class B,C,D,E,F agentClass
     class A userClass
 ```
-![deepResearchg工作流](./deep_research_workflow.png)
 
