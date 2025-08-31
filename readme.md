@@ -5,12 +5,12 @@
 ## 参考资料
 
 ### Agno相关
-[总览,提供了一个research agent的基本信息](https://docs.agno.com/agents/introduction)
-[运行Agent](https://docs.agno.com/agents/run)
-[prompt](https://docs.agno.com/agents/prompts)
-[使用工具](https://docs.agno.com/agents/tools)
-[多agent team](https://docs.agno.com/teams/introduction)
-[工作流](https://docs.agno.com/workflows_2/types_of_workflows)
+* [总览,提供了一个research agent的基本信息](https://docs.agno.com/agents/introduction)
+* [运行Agent](https://docs.agno.com/agents/run)
+* [prompt](https://docs.agno.com/agents/prompts)
+* [使用工具](https://docs.agno.com/agents/tools)
+* [多agent team](https://docs.agno.com/teams/introduction)
+* [工作流](https://docs.agno.com/workflows_2/types_of_workflows)
 
 ## 安装及运行
 
