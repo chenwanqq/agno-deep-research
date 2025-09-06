@@ -68,11 +68,12 @@ conda activate agno-env
 * reference是agno agent的具体实现(从agno包直接拷贝过来)
 * 接下来项目的实现主要放在src文件夹下，每个文件夹代表一种实验
 * 在prompts文件夹下存储prompt模板。在python代码中开发时，应将prompt模板的实现与代码分离，prompt模板的实现应放在prompts文件夹下，而python代码应放在src文件夹下。prompts的具体要求参考[Prompt设计规范](#prompt设计规范)
-* 搜索工具使用Tavily API，需要在.env文件中配置TAVILY_API_KEY。使用agno.tools.tavily.TavilyTools().设置include_answer=False,format='json'以使其返回原始搜索结果.并将使用google搜索的代码以注释形式写在下一行，方便备选，例如：
+* 搜索工具使用custom_tools下面的tavily_tools_with_index，需要在.env文件中配置TAVILY_API_KEY。设置include_answer=False,format='json'以使其返回原始搜索结果.并将使用google搜索的代码以注释形式写在下一行，方便备选，例如：
 ```python
+from custom_tools.tavily_tools_with_index import TavilyToolsWithIndex
 agent = Agent(
 ...#其它参数
-tools=[TavilyTools(include_answer=False,format='json')], 
+tools=[TavilyToolsWithIndex(include_answer=False,format='json')], 
 #tools=[GoogleSearchTools(fixed_max_results=10)],
 show_tool_calls=True)
 
@@ -94,11 +95,11 @@ show_tool_calls=True)
 
 ### 简单搜索agent
 
-- [ ] 1 实现一个简单的搜索agent，在这个agent内，用户可以输入一个问题，agent会自主调用搜索工具，搜索相关内容，最后返回总结的结果。限制只能调用一次工具
+- [x] 1 实现一个简单的搜索agent，在这个agent内，用户可以输入一个问题，agent会自主调用搜索工具，搜索相关内容，最后返回总结的结果。限制只能调用一次工具
     - [x] 1.1 基本的搜索-总结内容实现
-    - [ ] 1.2 给search_and_read工具增加储存功能，把搜索到的内容储存到一个文件中
-    - [ ] 1.3 调整prompt，让模型在总结内容时，将生成内容与搜索结果相关的部分加上引用角标，引用角标格式为[1]、[2]等；在生成结果的末尾加上所有搜索结果的标题和链接
-- [ ] 2 实现一个搜索工作流。这个工作流包括多个agent，先用小模型生成提示词，接着使用搜索工具搜索相关内容，最后用大模型总结搜索结果
+    - [x] 1.2 给搜索工具增加储存功能，把搜索到的内容储存到一个文件中
+    - [x] 1.3 调整prompt，让模型在总结内容时，将生成内容与搜索结果相关的部分加上引用角标，引用角标格式为[1]、[2]等；在生成结果的末尾加上所有搜索结果的标题和链接
+- [x] 2 实现一个搜索工作流。这个工作流包括多个agent，先用小模型生成提示词，接着使用搜索工具搜索相关内容，最后用大模型总结搜索结果
 
 ### deep research应用
 

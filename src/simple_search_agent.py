@@ -10,6 +10,8 @@ from typing import Dict, Any
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 from model_config import create_reasoning_model, create_small_instruct_model, create_nano_instruct_model
 from prompt_loader import load_prompt_template, get_agent_params
+from custom_tools.tavily_tools_with_index import TavilyToolsWithIndex
+from agno.tools.file import FileTools
 
 async def run_simple_search_agent() -> None:
     """运行简单搜索agent"""
@@ -24,9 +26,9 @@ async def run_simple_search_agent() -> None:
         #model=create_reasoning_model(),
         model=create_small_instruct_model(),
         #model=create_nano_instruct_model(),
-        #tools=[TavilyTools(include_answer=False,format='json')],
-        tools=[GoogleSearchTools(fixed_max_results=10)],
-        tool_call_limit=1,  # 限制只能调用一次工具
+        tools=[TavilyToolsWithIndex(include_answer=False,store_path="./tmp/search.json",format='json'),FileTools()],
+        #tools=[GoogleSearchTools(fixed_max_results=10)],
+        tool_call_limit=2,  # 限制只能调用一次工具
         add_history_to_messages=True,
         description=agent_params['description'],
         instructions=agent_params['instructions'],

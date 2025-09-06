@@ -62,42 +62,43 @@ conda activate agno-env
 * The .env file contains environment variables. Since they are sensitive, they are ignored. Here are the fields:
     * OPENAI_API_KEY stores the API key
     * OPENAI_API_BASE_URL stores the API base URL
-    * TAVILY_API_KEY stores the Tavily API key for Tavily search tools
-* src/custom_tools contains custom tools
-* src/explore contains previous experimental code for exploring Agno usage methods, which can be referenced for future implementations
-* reference contains the specific implementation of Agno agents (copied directly from the Agno package)
-* Future project implementations will mainly be placed in the src folder, with each folder representing a type of experiment
-* Prompt templates are stored in the prompts folder. During Python development, prompt template implementation should be separated from code. Prompt templates should be placed in the prompts folder, while Python code should be placed in the src folder. For specific prompt requirements, refer to [Prompt Design Specifications](#prompt-design-specifications)
-* Search tools use the Tavily API, which requires configuring TAVILY_API_KEY in the .env file. Use agno.tools.tavily.TavilyTools() with include_answer=False and format='json' to return raw search results. Write Google search code as comments on the next line for backup, for example:
+    * TAVILY_API_KEY stores the Tavily API key for the Tavily search tool
+* `src/custom_tools` contains custom tools.
+* `src/explore` contains previous experimental code for exploring Agno usage methods, which can be referenced for future implementations.
+* `reference` contains the specific implementation of Agno agents (copied directly from the Agno package).
+* Future project implementations will mainly be placed in the `src` folder, with each folder representing an experiment.
+* Prompt templates are stored in the `prompts` folder. During Python development, the implementation of prompt templates should be separated from the code. Prompt templates should be placed in the `prompts` folder, while Python code should be in the `src` folder. For specific prompt requirements, refer to [Prompt Design Specifications](#prompt-design-specifications).
+* The search tool uses `tavily_tools_with_index` from `custom_tools`, which requires configuring `TAVILY_API_KEY` in the `.env` file. Set `include_answer=False` and `format='json'` to have it return raw search results. The code for using Google search should be written as a comment on the next line as a backup option, for example:
 ```python
+from custom_tools.tavily_tools_with_index import TavilyToolsWithIndex
 agent = Agent(
 ...# other parameters
-tools=[TavilyTools(include_answer=False,format='json')], 
+tools=[TavilyToolsWithIndex(include_answer=False,format='json')], 
 #tools=[GoogleSearchTools(fixed_max_results=10)],
 show_tool_calls=True)
 ```
-* For AI tools, unless explicitly stated, do not run and test the program after development completion. Instead, provide relevant instructions for manual running and testing.
+* For AI tools, unless I explicitly state otherwise, do not run and test the program after development is complete. Instead, provide the relevant commands to me, and I will run and test them manually.
 
 ## Prompt Design Specifications
 
-When designing prompts, follow these specifications:
-* **Prompt Template Format**: Prompt templates should be created in JSON format. Agno templates can be divided into description, instructions, goal, and other parts. For specific details, refer to [Running Agents](https://docs.agno.com/agents/run). For this project, they should include:
-    * description: Brief description of the agent's role and tasks
-    * instructions: Detailed explanation of the agent's workflow, available tools, etc.
-    * goal: Description of the agent's objectives
-    * additional_context: Add constraints here, clarifying what the agent cannot do (e.g., output harmful information) and other limitations (e.g., limits on external tool calls)
-* **Search Tool Language Settings**: Since these are international search tools, unless dealing with China-specific content, keywords should preferably be in English, with region/language settings set to English.
-* **Language Adaptation Instructions**: Add instructions to choose response language based on user question language, i.e., respond in Chinese if the user asks in Chinese, respond in English if the user asks in English.
+When designing prompts, the following specifications should be followed:
+* **Prompt Template Format**: Prompt templates should be created in JSON format. An Agno template can be divided into `description`, `instructions`, `goal`, etc. For details, refer to the [Running Agents](https://docs.agno.com/agents/run) documentation. For our project, it should include:
+    * `description`: A brief description of the agent's role and task.
+    * `instructions`: A detailed explanation of the agent's workflow, available tools, etc.
+    * `goal`: A description of the agent's objective.
+    * `additional_context`: This section is for adding constraints, clarifying what the agent cannot do (e.g., output harmful information), and other limitations (e.g., limits on external tool calls).
+* **Search Tool Language Settings**: Since the search tools are international, keywords should preferably be in English, with the region/language set to English, unless the content is specifically about China.
+* **Language Adaptation Instructions**: Instructions should be added to select the response language based on the user's query language. That is, respond in Chinese if the user asks in Chinese, and in English if the user asks in English.
 
 ## Development Goals
 
 ### Simple Search Agent
 
-- [ ] 1 Implement a simple search agent where users can input a question, the agent autonomously calls search tools, searches for relevant content, and returns summarized results. Limited to one tool call
-    - [x] 1.1 Basic search-summarize content implementation
-    - [ ] 1.2 Add storage functionality to search_and_read tool, storing searched content to a file
-    - [ ] 1.3 Adjust prompt so the model adds citation markers to parts of generated content related to search results, with citation format [1], [2], etc.; add all search result titles and links at the end of generated results
-- [ ] 2 Implement a search workflow. This workflow includes multiple agents: first use a small model to generate prompts, then use search tools to search for relevant content, finally use a large model to summarize search results
+- [x] 1. Implement a simple search agent. In this agent, a user can input a question, and the agent will autonomously call a search tool to find relevant content, finally returning a summarized result. The tool call is limited to one.
+    - [x] 1.1 Basic implementation of search-and-summarize content.
+    - [x] 1.2 Add a storage feature to the search tool to save the searched content to a file.
+    - [x] 1.3 Adjust the prompt to make the model add citation markers (e.g., `[1]`, `[2]`) to the parts of the summary related to the search results, and append the titles and links of all search results at the end.
+- [x] 2. Implement a search workflow. This workflow includes multiple agents: first, a small model generates search queries; then, a search tool is used to search for relevant content; finally, a large model summarizes the search results.
 
 ### Deep Research Application
 

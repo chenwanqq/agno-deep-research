@@ -4,7 +4,7 @@ except ImportError:
     print("No module named 'google' found")
 
 # to search
-query = "DinoV3 model introduction"
+query = "202年9月6日北京天气"
 
 for result in search(query, num_results=10,advanced=True):
     print("url:",result.url)

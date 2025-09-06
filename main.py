@@ -18,9 +18,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 # 导入各种agent
 try:
     from simple_search_agent import run_simple_search_agent
+    from workflow_search_agent import run_workflow_search_agent
 except ImportError as e:
-    print(f"导入simple_search_agent失败: {e}")
+    print(f"导入agent失败: {e}")
     run_simple_search_agent = None
+    run_workflow_search_agent = None
 
 
 def print_banner() -> None:
@@ -39,9 +41,15 @@ def list_available_agents() -> Dict[str, Dict[str, Any]]:
     agents = {
         "simple-search": {
             "name": "简单搜索Agent",
-            "description": "使用Google搜索并总结网页内容的基础agent",
+            "description": "使用搜索工具并总结网页内容的基础agent",
             "function": run_simple_search_agent,
             "available": run_simple_search_agent is not None
+        },
+        "workflow-search": {
+            "name": "搜索工作流Agent",
+            "description": "通过多agent工作流(生成查询->搜索->总结)完成搜索任务",
+            "function": run_workflow_search_agent,
+            "available": run_workflow_search_agent is not None
         }
     }
     return agents
@@ -100,6 +108,7 @@ def main() -> None:
         epilog="""
 示例:
   python main.py simple-search    # 运行简单搜索agent
+  python main.py workflow-search # 运行搜索工作流agent
   python main.py --list          # 列出所有可用的agent
   python main.py --help          # 显示帮助信息
         """
