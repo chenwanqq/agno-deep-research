@@ -51,6 +51,8 @@ class ResearcherAgent:
         self.output_dir = output_dir
         self.search_history = []
         self.current_task = None
+        self.global_citation_index = 0
+        self.already_generate_citation = False
         
         # 确保输出目录存在
         os.makedirs(self.output_dir, exist_ok=True)
@@ -83,6 +85,13 @@ class ResearcherAgent:
         
         try:
             search_result = json.loads(search_result_str)
+            
+            # 为每个搜索结果添加全局索引
+            for i, result in enumerate(search_result.get('results', []), 1):
+                self.global_citation_index += 1
+                result['index'] = self.global_citation_index
+                
+            
             search_data = {
                 "query": query,
                 "timestamp": datetime.datetime.now().isoformat(),
@@ -127,14 +136,17 @@ class ResearcherAgent:
         
         # 为每个搜索结果创建引用
         citations = []
-        for i, result in enumerate(search_results, 1):
+        for result in search_results:
             title = result.get('title', 'Unknown Title')
             url = result.get('url', 'Unknown URL')
-            citations.append(f"[{i}] {title} - {url}")
+            index = result.get('index', 'Unknown Index')
+            citations.append(f"[{index}] {title} - {url}")
         
         # 在内容末尾添加参考资料
         if citations:
-            cited_content += "\n\n## 参考资料\n\n"
+            if self.already_generate_citation:
+                cited_content += "\n\n## 参考资料\n\n"
+                self.already_generate_citation = True
             cited_content += "\n".join(citations)
         
         return cited_content
@@ -241,10 +253,13 @@ class ResearcherAgent:
             return json.dumps(search_data, ensure_ascii=False)
         
         agent = Agent(
-            model=create_reasoning_model(),
+            #model=create_reasoning_model(),
+            model=create_small_instruct_model(),
             tools=[search_information],
             add_datetime_to_instructions=True,
+            debug_mode=True,
             show_tool_calls=True,
+            tool_call_limit=5,
             **self.agent_params
         )
         
