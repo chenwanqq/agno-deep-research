@@ -20,11 +20,13 @@ try:
     from simple_search_agent import run_simple_search_agent
     from workflow_search_agent import run_workflow_search_agent
     from deep_research.planning_agent import run_planning_agent
+    from deep_research.researcher_agent import run_researcher_agent
 except ImportError as e:
     print(f"导入agent失败: {e}")
     run_simple_search_agent = None
     run_workflow_search_agent = None
     run_planning_agent = None
+    run_researcher_agent = None
 
 
 def print_banner() -> None:
@@ -58,6 +60,12 @@ def list_available_agents() -> Dict[str, Dict[str, Any]]:
             "description": "制定研究计划的agent，支持用户交互和计划调整",
             "function": run_planning_agent,
             "available": run_planning_agent is not None
+        },
+        "researcher": {
+            "name": "研究员Agent",
+            "description": "根据子任务进行深度研究，生成高质量报告和摘要",
+            "function": run_researcher_agent,
+            "available": run_researcher_agent is not None
         }
     }
     return agents
@@ -113,11 +121,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Agno Deep Research - AI-Powered Research Tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-示例:
+        epilog="""示例:
   python main.py simple-search    # 运行简单搜索agent
   python main.py workflow-search # 运行搜索工作流agent
   python main.py planning        # 运行规划agent (人在回路中)
+  python main.py researcher      # 运行研究员agent
   python main.py --list          # 列出所有可用的agent
   python main.py --help          # 显示帮助信息
         """

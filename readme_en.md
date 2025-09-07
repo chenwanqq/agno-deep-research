@@ -40,6 +40,12 @@ python main.py --list
 # Run simple search agent
 python main.py simple-search
 
+# Run planning agent
+python main.py planning
+
+# Run researcher agent
+python main.py researcher
+
 # View help information
 python main.py --help
 
@@ -49,6 +55,8 @@ python main.py --version
 
 #### Currently Supported Agents
 - **simple-search**: Simple Search Agent, uses search tools and summarizes web content
+- **planning**: Planning Workflow v2.0, uses fixed tool flow architecture: plan generation -> plan display -> feedback evaluation -> structured output, supports human-machine interaction and plan iterative optimization
+- **researcher**: Researcher Agent, executes deep research tasks, supports multi-round search, report generation, citation annotation, and feedback modification features
 
 
 ## Environment (For AI tools, developer-specific)
@@ -118,12 +126,12 @@ Implement a deep research application that automatically generates a research pl
     - [ ] 1.2 Integrate internet search tools
     - [ ] 1.3 Implement research plan generation logic
     - [ ] 1.4 Implement user interaction and plan adjustment functionality
-- [ ] **2. Implement Researcher Agent**
-    - [ ] 2.1 Create agent basic structure
-    - [ ] 2.2 Integrate internet search tools
-    - [ ] 2.3 Implement functionality to generate research reports based on subtasks
-    - [ ] 2.4 Implement search result storage and citation annotation
-    - [ ] 2.5 Implement functionality to modify reports based on feedback
+- [x] **2. Implement Researcher Agent**
+    - [x] 2.1 Create agent basic structure
+    - [x] 2.2 Integrate internet search tools
+    - [x] 2.3 Implement functionality to generate research reports based on subtasks
+    - [x] 2.4 Implement search result storage and citation annotation
+    - [x] 2.5 Implement functionality to modify reports based on feedback
 - [ ] **3. Implement Reflection Agent**
     - [ ] 3.1 Create agent basic structure
     - [ ] 3.2 Implement logic to evaluate research reports
