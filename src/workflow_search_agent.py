@@ -1,10 +1,11 @@
 from agno.agent import Agent
-from agno.workflow.v2 import StepInput, StepOutput, Workflow, Step
-from agno.tools.tavily import TavilyTools
+from agno.workflow.v2 import StepInput, StepOutput, Workflow, Step, Router
+from agno.memory.v2 import Memory
+from pydantic import BaseModel, Field
 import asyncio
 import sys
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 import json
 
 # 导入utils模块
@@ -13,9 +14,14 @@ from model_config import create_reasoning_model, create_small_instruct_model
 from prompt_loader import load_prompt_template, get_agent_params
 from custom_tools.tavily_tools_with_index import TavilyToolsWithIndex
 
+
+class queryAgentOutput(BaseModel):
+    needSearch: bool = Field(..., description="是否需要搜索")
+    searchQuery: str = Field(..., description="当needSearch为true时，搜索查询的关键词；否则为用户的输入")
+
 def search_function(step_input: StepInput) -> StepOutput:
     """搜索函数"""
-    query = step_input.previous_step_content
+    query = step_input.previous_step_content.searchQuery
     tavily_tools_with_index = TavilyToolsWithIndex(include_answer=False,format='json')
     result = tavily_tools_with_index.web_search_using_tavily(query)
     output = json.dumps({
@@ -28,7 +34,9 @@ def search_function(step_input: StepInput) -> StepOutput:
     return StepOutput(content=output,success=True)
 
 
+
 def create_workflow_search_agent() -> Workflow:
+
     """创建并返回搜索工作流"""
     # 1. 查询生成 Agent
     query_gen_template: Dict[str, Any] = load_prompt_template('query_generator_agent')
@@ -36,27 +44,52 @@ def create_workflow_search_agent() -> Workflow:
     query_generator_agent = Agent(
         model=create_small_instruct_model(),
         add_datetime_to_instructions=True,
-        **query_gen_params
+        response_model = queryAgentOutput,
+        use_json_mode=True,
+        **query_gen_params,
     )
-    
-    
 
-    # 3. 总结 Agent
+    #2. 无搜索结果Agent
+    no_search_result_template: Dict[str, Any] = load_prompt_template('no_search_result_agent')
+    no_search_result_params: Dict[str, str] = get_agent_params(no_search_result_template)
+    no_search_result_agent = Agent(
+        model=create_reasoning_model(),
+        add_datetime_to_instructions=True,
+        add_history_to_messages=True,
+        **no_search_result_params
+    )
+
+    # 3. 总结搜索结果 Agent
     summarizer_template: Dict[str, Any] = load_prompt_template('summarizer_agent')
     summarizer_params: Dict[str, str] = get_agent_params(summarizer_template)
     summarizer_agent = Agent(
         model=create_reasoning_model(),
         add_datetime_to_instructions=True,
+        add_history_to_messages=True,
         **summarizer_params
     )
+
+    query_generation_step = Step(name="Query Generation", agent=query_generator_agent)
+    search_step = Step(name="Search", executor=search_function)
+    no_search_result_step = Step(name="No Search Results", agent=no_search_result_agent)
+    summarizer_step = Step(name="Summarization", agent=summarizer_agent)
+
+    def search_router(step_input: StepInput) -> List[Step]:
+        needSearch = step_input.previous_step_content.needSearch
+        if not needSearch:
+            return [no_search_result_step]
+        return [search_step,summarizer_step]
 
     # 创建工作流 (v2)
     workflow = Workflow(
         name="Search Workflow",
         steps=[
-            Step(name="Query Generation", agent=query_generator_agent),
-            Step(name="Search", executor=search_function),
-            Step(name="Summarization", agent=summarizer_agent),
+            query_generation_step,
+            Router(
+                name = "Search Router",
+                selector = search_router, #todo
+                choices= [search_step,no_search_result_step]
+            )
         ]
     )
     return workflow

@@ -49,6 +49,7 @@ python main.py --version
 
 #### 当前支持的Agent
 - **simple-search**: 简单搜索Agent，使用搜索工具并总结网页内容
+- **planning**: 规划工作流 v2.0，采用固定工具流架构：规划生成 -> 计划展示 -> 反馈评估 -> 结构化输出，支持人机交互和计划迭代优化
 
 
 ## 环境（向AI说明，仅限于开发者本人适用）
@@ -114,11 +115,13 @@ show_tool_calls=True)
 
 #### 开发计划
 
-- [ ] **1. 实现规划agent (Planning Agent)**
-    - [ ] 1.1 创建agent基础结构
-    - [ ] 1.2 集成联网搜索工具
-    - [ ] 1.3 实现研究计划的生成逻辑
-    - [ ] 1.4 实现与用户的交互和计划调整功能
+- [x] **1. 实现规划agent (Planning Agent) ✅**
+    - [x] 1.1 创建规划agent的prompt模板 (v2.0: plan_generator_agent.json, feedback_evaluator_agent.json)
+    - [x] 1.2 实现规划agent的核心逻辑 (v2.0: 重构为工作流架构)
+    - [x] 1.3 集成搜索工具用于背景信息收集 (Tavily搜索工具)
+    - [x] 1.4 实现人机交互的计划确认机制 (固定工具流设计)
+    - [x] 1.5 添加计划展示和反馈收集功能 (独立的展示和评估组件)
+    - [x] 1.6 测试规划agent的功能完整性 (v2.0测试文件)
 - [ ] **2. 实现研究员agent (Researcher Agent)**
     - [ ] 2.1 创建agent基础结构
     - [ ] 2.2 集成联网搜索工具

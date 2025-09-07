@@ -19,10 +19,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 try:
     from simple_search_agent import run_simple_search_agent
     from workflow_search_agent import run_workflow_search_agent
+    from deep_research.planning_agent import run_planning_agent
 except ImportError as e:
     print(f"导入agent失败: {e}")
     run_simple_search_agent = None
     run_workflow_search_agent = None
+    run_planning_agent = None
 
 
 def print_banner() -> None:
@@ -50,6 +52,12 @@ def list_available_agents() -> Dict[str, Dict[str, Any]]:
             "description": "通过多agent工作流(生成查询->搜索->总结)完成搜索任务",
             "function": run_workflow_search_agent,
             "available": run_workflow_search_agent is not None
+        },
+        "planning": {
+            "name": "规划Agent (人在回路中)",
+            "description": "制定研究计划的agent，支持用户交互和计划调整",
+            "function": run_planning_agent,
+            "available": run_planning_agent is not None
         }
     }
     return agents
@@ -109,6 +117,7 @@ def main() -> None:
 示例:
   python main.py simple-search    # 运行简单搜索agent
   python main.py workflow-search # 运行搜索工作流agent
+  python main.py planning        # 运行规划agent (人在回路中)
   python main.py --list          # 列出所有可用的agent
   python main.py --help          # 显示帮助信息
         """
