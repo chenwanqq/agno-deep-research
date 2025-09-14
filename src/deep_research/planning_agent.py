@@ -1,13 +1,10 @@
 from agno.agent import Agent
 from agno.workflow.v2 import Workflow
-from agno.memory.v2 import Memory
 from agno.exceptions import StopAgentRun
 from agno.tools import FunctionCall, tool
-from rich.console import Console
-from rich.pretty import pprint
+from agno.models.openai import OpenAIChat
 from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
-from rich.markdown import Markdown
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional
 import sys
@@ -17,12 +14,17 @@ import json
 # 导入utils模块
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'custom_tools'))
-from model_config import create_reasoning_model, create_small_instruct_model
+from model_config import  create_small_instruct_model
 from prompt_loader import load_prompt_template, get_agent_params
 from custom_tools.tavily_tools_with_index import TavilyToolsWithIndex
+from console_manager import get_console_manager
 
-# 控制台实例
-console = Console()
+# 控制台管理器实例
+console_manager = get_console_manager()
+console = console_manager.console
+
+# 全局模型配置
+_planning_model: OpenAIChat = None
 
 class ResearchPlan(BaseModel):
     """研究计划数据模型"""
@@ -39,21 +41,16 @@ class FeedbackEvaluation(BaseModel):
 
 def approval_hook(fc: FunctionCall):
     """操作确认钩子函数"""
-    live = console._live_stack[-1]
-    if live:
-        live.stop()
+    def _confirm_operation():
+        console.print(f"\n[bold blue]即将执行: {fc.function.name}[/]")
+        return Confirm.ask("是否继续执行此操作?", default=True)
     
-    console.print(f"\n[bold blue]即将执行: {fc.function.name}[/]")
-    if not Confirm.ask("是否继续执行此操作?", default=True):
-        if live:
-            live.start()
+    # 使用安全的live操作
+    if not console_manager.safe_live_operation(_confirm_operation):
         raise StopAgentRun(
             "操作被用户取消",
             agent_message="根据您的要求，我已停止执行此操作。"
         )
-    
-    if live:
-        live.start()
 
 @tool(pre_hook=approval_hook)
 def search_background_info(query: str) -> str:
@@ -78,9 +75,14 @@ def generate_research_plan(message: str) -> Dict[str, Any]:
     plan_gen_template = load_prompt_template('plan_generator_agent')
     plan_gen_params = get_agent_params(plan_gen_template)
     
+    # 根据全局模型配置选择模型
+    if _planning_model:
+        model = _planning_model
+    else:
+        model = create_small_instruct_model()
+    
     plan_generator = Agent(
-        #model=create_reasoning_model(),
-        model=create_small_instruct_model(),
+        model=model,
         tools=[search_background_info],
         add_datetime_to_instructions=True,
         response_model=ResearchPlan,
@@ -105,61 +107,56 @@ def display_plan_and_get_feedback(plan: Dict[str, Any]) -> tuple[str, str]:
     """步骤2: 展示计划并收集用户反馈"""
     console.print("\n[dim]正在展示研究计划...[/]")
     
-    # 获取live display实例并暂停
-    live = console._live_stack[-1]
-    if live:
-        live.stop()
+    def _display_and_get_feedback():
+        # 展示研究计划
+        console.print("\n" + "="*60)
+        console.print(Panel.fit(
+            f"[bold green]{plan.get('title', '研究计划')}[/]",
+            border_style="green"
+        ))
+        
+        console.print(f"\n[bold]概述:[/] {plan.get('overview', '')}")
+        console.print(f"[bold]预估时间:[/] {plan.get('estimated_duration', '')}")
+        
+        console.print("\n[bold]研究子任务:[/]")
+        subtasks = plan.get('subtasks', [])
+        for i, task in enumerate(subtasks, 1):
+            console.print(f"\n[bold cyan]{i}. {task.get('description', '')}[/]")
+            console.print(f"   [dim]预期产出:[/] {task.get('expected_output', '')}")
+            console.print(f"   [dim]重要性:[/] {task.get('importance', '')}")
+        
+        console.print("\n" + "="*60)
+        
+        # 获取用户反馈
+        feedback_options = [
+            "满意，确认此计划",
+            "需要修改",
+            "重新制定计划"
+        ]
+        
+        console.print("\n[bold]请选择您的反馈:[/]")
+        for i, option in enumerate(feedback_options, 1):
+            console.print(f"  {i}. {option}")
+        
+        while True:
+            try:
+                choice = Prompt.ask("请输入选项编号 (1-3)", choices=["1", "2", "3"])
+                break
+            except KeyboardInterrupt:
+                choice = "3"
+                break
+        
+        feedback = feedback_options[int(choice) - 1]
+        
+        # 如果需要修改，获取具体修改意见
+        modification_details = ""
+        if choice == "2":
+            modification_details = Prompt.ask("\n请详细说明您希望如何修改这个计划")
+        
+        return choice, modification_details
     
-    # 展示研究计划
-    console.print("\n" + "="*60)
-    console.print(Panel.fit(
-        f"[bold green]{plan.get('title', '研究计划')}[/]",
-        border_style="green"
-    ))
-    
-    console.print(f"\n[bold]概述:[/] {plan.get('overview', '')}")
-    console.print(f"[bold]预估时间:[/] {plan.get('estimated_duration', '')}")
-    
-    console.print("\n[bold]研究子任务:[/]")
-    subtasks = plan.get('subtasks', [])
-    for i, task in enumerate(subtasks, 1):
-        console.print(f"\n[bold cyan]{i}. {task.get('description', '')}[/]")
-        console.print(f"   [dim]预期产出:[/] {task.get('expected_output', '')}")
-        console.print(f"   [dim]重要性:[/] {task.get('importance', '')}")
-    
-    console.print("\n" + "="*60)
-    
-    # 获取用户反馈
-    feedback_options = [
-        "满意，确认此计划",
-        "需要修改",
-        "重新制定计划"
-    ]
-    
-    console.print("\n[bold]请选择您的反馈:[/]")
-    for i, option in enumerate(feedback_options, 1):
-        console.print(f"  {i}. {option}")
-    
-    while True:
-        try:
-            choice = Prompt.ask("请输入选项编号 (1-3)", choices=["1", "2", "3"])
-            break
-        except KeyboardInterrupt:
-            choice = "3"
-            break
-    
-    feedback = feedback_options[int(choice) - 1]
-    
-    # 如果需要修改，获取具体修改意见
-    modification_details = ""
-    if choice == "2":
-        modification_details = Prompt.ask("\n请详细说明您希望如何修改这个计划")
-    
-    # 重启live display
-    if live:
-        live.start()
-    
-    return choice, modification_details
+    # 使用安全的live操作
+    return console_manager.safe_live_operation(_display_and_get_feedback)
 
 def process_user_feedback(choice: str, modification_details: str, original_message: str) -> tuple[str, str]:
     """步骤3: 处理用户反馈"""
@@ -176,28 +173,25 @@ def process_user_feedback(choice: str, modification_details: str, original_messa
 
 def output_final_plan(plan: Dict[str, Any]) -> str:
     """步骤4: 输出最终确认的计划"""
-    live = console._live_stack[-1]
-    if live:
-        live.stop()
+    def _output_plan():
+        console.print("\n" + "🎉" * 20)
+        console.print(Panel.fit(
+            "[bold green]研究计划已确认！[/]",
+            border_style="green"
+        ))
+        
+        # 以结构化格式输出最终计划
+        console.print("\n[bold]最终确认的研究计划:[/]")
+        final_plan_json = json.dumps(plan, ensure_ascii=False, indent=2)
+        console.print(final_plan_json)
+        
+        return json.dumps({
+            "status": "confirmed",
+            "plan": plan
+        }, ensure_ascii=False)
     
-    console.print("\n" + "🎉" * 20)
-    console.print(Panel.fit(
-        "[bold green]研究计划已确认！[/]",
-        border_style="green"
-    ))
-    
-    # 以结构化格式输出最终计划
-    console.print("\n[bold]最终确认的研究计划:[/]")
-    final_plan_json = json.dumps(plan, ensure_ascii=False, indent=2)
-    console.print(final_plan_json)
-    
-    if live:
-        live.start()
-    
-    return json.dumps({
-        "status": "confirmed",
-        "final_plan": plan
-    }, ensure_ascii=False)
+    # 使用安全的live操作
+    return console_manager.safe_live_operation(_output_plan)
 
 def planning_workflow_function(workflow: Workflow, execution_input) -> str:
     """重构后的规划工作流函数，调用各个步骤函数"""
@@ -208,13 +202,19 @@ def planning_workflow_function(workflow: Workflow, execution_input) -> str:
         try:
             # 步骤1: 生成研究计划
             plan = generate_research_plan(message)
+
+            print("已生成计划")
             
             # 步骤2: 展示计划并收集用户反馈
             choice, modification_details = display_plan_and_get_feedback(plan)
             
+            print("已展示计划")
+
             # 步骤3: 处理用户反馈
             action, updated_message = process_user_feedback(choice, modification_details, original_message)
             
+            print("已处理反馈")
+
             if action == "confirmed":
                 # 步骤4: 输出最终确认的计划
                 return output_final_plan(plan)
@@ -232,8 +232,17 @@ def planning_workflow_function(workflow: Workflow, execution_input) -> str:
                 "error": str(e)
             }, ensure_ascii=False)
 
-def create_planning_workflow() -> Workflow:
-    """创建基于纯Python函数的规划工作流"""
+def create_planning_workflow(model: OpenAIChat = None) -> Workflow:
+    """创建基于纯Python函数的规划工作流
+    
+    Args:
+        model (OpenAIChat): 指定使用的模型实例，如果为None则使用默认配置
+    """
+    # 如果指定了模型，更新全局模型配置
+    if model:
+        global _planning_model
+        _planning_model = model
+    
     workflow = Workflow(
         name="Planning Workflow v2.1",
         steps=planning_workflow_function  # 使用单一Python函数替代所有步骤
@@ -241,17 +250,23 @@ def create_planning_workflow() -> Workflow:
     
     return workflow
 
-def run_planning_agent() -> None:
-    """运行规划agent工作流"""
+def run_planning_agent(model: OpenAIChat = None) -> None:
+    """运行规划agent工作流
+    
+    Args:
+        model (OpenAIChat): 指定使用的模型实例，如果为None则使用默认配置
+    """
     console.print(Panel.fit(
         "[bold green]Deep Research Planning Agent v2.0[/]\n" +
         "重构版本：规划生成 -> 计划展示 -> 用户反馈 -> 结构化输出",
         border_style="green"
     ))
+    if model:
+        console.print(f"[dim]使用模型: {model}[/]")
     console.print("\n输入 'exit' 或 'quit' 退出程序。")
     console.print("="*50)
     
-    workflow = create_planning_workflow()
+    workflow = create_planning_workflow(model)
     
     while True:
         try:

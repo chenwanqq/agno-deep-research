@@ -209,3 +209,5 @@ __marimo__/
 mcp.bak
 
 research_output/
+deep_research_output/
+tmp/

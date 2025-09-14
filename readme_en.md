@@ -55,8 +55,10 @@ python main.py --version
 
 #### Currently Supported Agents
 - **simple-search**: Simple Search Agent, uses search tools and summarizes web content
+- **workflow-search**: Search Workflow Agent, completes search tasks through multi-agent workflow (query generation -> search -> summarization)
 - **planning**: Planning Workflow v2.0, uses fixed tool flow architecture: plan generation -> plan display -> feedback evaluation -> structured output, supports human-machine interaction and plan iterative optimization
-- **researcher**: Researcher Agent, executes deep research tasks, supports multi-round search, report generation, citation annotation, and feedback modification features
+- **researcher-workflow**: Researcher Workflow, implements detailed report generation and summary generation through a two-step workflow, supports multi-round search, citation annotation, and feedback modification features
+- **deep-research**: Complete deep research system, integrates planning, research, and summarization phases, automatically generates structured research reports with detailed reference management and final report generation
 
 
 ## Environment (For AI tools, developer-specific)
@@ -64,6 +66,61 @@ Before executing test code:
 ```bash
 conda activate agno-env
 ```
+
+## Deep Research System Architecture
+
+### System Overview
+The Deep Research system is a complete AI-driven research tool that can automatically generate research plans, conduct in-depth investigations, and produce structured research reports based on user input research questions. The system adopts a multi-agent collaborative architecture with the following core components:
+
+### Core Components
+
+#### 1. Planning Agent
+- **File Location**: `src/deep_research/planning_agent.py`
+- **Function**: Generates structured research plans based on user questions, supports human-machine interactive optimization
+- **Workflow**: Plan generation → Plan display → User feedback → Plan adjustment → Final confirmation
+- **Output**: JSON format research plan containing title, overview, and subtask list
+
+#### 2. Researcher Workflow
+- **File Location**: `src/deep_research/researcher_workflow.py`
+- **Function**: Executes specific research tasks, generates detailed reports and summaries
+- **Workflow**: Query generation → Internet search → Report writing → Summary generation
+- **Output**: Detailed research reports (Markdown), research summaries, search result storage
+
+#### 3. Finish Agent
+- **File Location**: `src/deep_research/finish_agent.py`
+- **Function**: Aggregates all research results and generates the final complete research report
+- **Components**: Title-intro generator, conclusion generator, reference generator
+- **Output**: Complete research report including introduction, detailed content, conclusion, and references
+
+#### 4. Reference Management System
+- **File Location**: `src/reference_manager/`
+- **Function**: Manages storage, indexing, and citation annotation of search results
+- **Features**: Automatic citation mark generation, multiple citation format support, duplicate prevention storage
+
+### Output Structure
+
+The system creates independent output directories for each research task, containing the following files:
+
+```
+<task_id>/
+├── research_plan.json          # Research plan
+├── all_research_results.json   # All research results summary
+├── final_report.md            # Final research report
+├── research_reports/          # Detailed reports for each subtask
+│   ├── detailed_report_*.md   # Detailed research reports
+│   └── summary_*.md          # Research summaries
+├── references/               # Reference materials
+│   └── references_*.json     # Search results and citation data
+└── summaries/               # Phased summaries (optional)
+```
+
+### Example Output
+
+The project includes complete example output (`example_task/`) demonstrating systematic research on "Deep Learning History":
+- **Research Plan**: 6 subtasks covering deep learning development from 1943 to 2025
+- **Detailed Reports**: Each subtask generates approximately 3000-5000 word in-depth analysis reports
+- **Final Report**: Over 20,000 word complete research report including introduction, detailed analysis, conclusion, and references
+- **Reference Management**: Automatically annotated citation indexes and complete reference lists
 
 ## Project Design
 
@@ -114,60 +171,63 @@ Implement a deep research application that automatically generates a research pl
 
 #### Involved Agents
 1. Planning Agent: This agent first generates a structured research plan based on user input questions, optionally using internet search tools. The research plan contains several subtasks and interacts with users, finally adjusting the research plan based on user feedback.
-2. Commander Agent: After determining the research plan, this agent calls researcher agents in the order of the research plan to conduct internet searches and research on subtasks; after the researcher agent returns results, it provides research results to the reflection agent to determine if modifications are needed. If modifications are needed, it provides modification suggestions to the researcher agent for continued generation until the reflection agent determines no further modifications are needed or the maximum number of iterations is reached. Next, it summarizes all previous researcher agent research results and provides them along with the current task to the next researcher agent for continued research.
-3. Researcher Agent: This agent's task is to conduct internet searches using search tools based on subtasks provided by the commander agent, generate research reports for its part after searching relevant content, and provide them to the commander agent. If the commander agent provides feedback requiring modifications, it should conduct further research based on the feedback. The researcher agent should store searched content and properly annotate citations.
-4. Reflection Agent: This agent's task is to determine whether modifications are needed based on subtasks provided by the commander agent and research reports provided by the researcher agent. If modifications are needed, it should generate modification suggestions based on the researcher agent's research report.
-5. Summarizer Agent: This agent's task is to generate the final research report based on subtasks provided by the commander agent and research reports from all researcher agents. The research report should be generated according to a certain format (to be refined later).
+2. Researcher Agent: This agent's task is to conduct internet searches using search tools based on provided subtasks, generate research reports for its part after searching relevant content. The researcher agent should store searched content and properly annotate citations. Through a for loop, it executes each subtask in the research plan sequentially, receiving a summary of all previous research results as context for each execution.
+3. Summarizer Agent: This agent's task is to generate the final research report based on research reports from all researcher agents. The research report should be generated according to a certain format (to be refined later).
 
-#### Development Plan
+#### Development Plan and Implementation Status
 
-- [ ] **1. Implement Planning Agent**
-    - [ ] 1.1 Create agent basic structure
-    - [ ] 1.2 Integrate internet search tools
-    - [ ] 1.3 Implement research plan generation logic
-    - [ ] 1.4 Implement user interaction and plan adjustment functionality
-- [x] **2. Implement Researcher Agent**
-    - [x] 2.1 Create agent basic structure
-    - [x] 2.2 Integrate internet search tools
-    - [x] 2.3 Implement functionality to generate research reports based on subtasks
-    - [x] 2.4 Implement search result storage and citation annotation
+- [x] **1. Implement Planning Agent ✅**
+    - [x] 1.1 Create planning agent prompt template (v2.0: plan_generator_agent.json, feedback_evaluator_agent.json)
+    - [x] 1.2 Implement planning agent core logic (v2.0: refactored to workflow architecture)
+    - [x] 1.3 Integrate search tools for background information collection (Tavily search tool)
+    - [x] 1.4 Implement human-machine interaction plan confirmation mechanism (fixed tool flow design)
+    - [x] 1.5 Add plan display and feedback collection functionality (independent display and evaluation components)
+    - [x] 1.6 Test planning agent functionality completeness (v2.0 test files)
+
+- [x] **2. Implement Researcher Agent ✅**
+    - [x] 2.1 Create agent basic structure (researcher_workflow.py)
+    - [x] 2.2 Integrate internet search tools (TavilyToolsWithIndex)
+    - [x] 2.3 Implement functionality to generate research reports based on subtasks (workflow architecture)
+    - [x] 2.4 Implement search result storage and citation annotation (ReferenceManager integration)
     - [x] 2.5 Implement functionality to modify reports based on feedback
-- [ ] **3. Implement Reflection Agent**
-    - [ ] 3.1 Create agent basic structure
-    - [ ] 3.2 Implement logic to evaluate research reports
-    - [ ] 3.3 Implement functionality to generate modification suggestions
-- [ ] **4. Implement Commander Agent**
-    - [ ] 4.1 Create agent basic structure
-    - [ ] 4.2 Implement logic to call researcher agents in research plan order
-    - [ ] 4.3 Implement logic to pass research reports and historical summaries to reflection agents and next researcher agents
-    - [ ] 4.4 Implement workflow to handle reflection agent feedback (iterative modifications)
-- [ ] **5. Implement Summarizer Agent**
-    - [ ] 5.1 Create agent basic structure
-    - [ ] 5.2 Define final research report format
-    - [ ] 5.3 Implement functionality to aggregate all research results and generate final report
-- [ ] **6. Integration and Testing**
-    - [ ] 6.1 Integrate all agents into a complete workflow
-    - [ ] 6.2 Write end-to-end test cases
-    - [ ] 6.3 Improve `main.py` to run deep research application
+    - [x] 2.6 Implement separate generation and storage of detailed reports and summaries
 
-#### Diagram
+- [x] **3. Implement Finish Agent ✅**
+    - [x] 3.1 Create agent basic structure (finish_agent.py)
+    - [x] 3.2 Define final research report format (title + introduction + detailed reports + conclusion + references)
+    - [x] 3.3 Implement functionality to aggregate all research results and generate final report
+    - [x] 3.4 Integrate title-intro generator, conclusion generator, and reference generator
+
+- [x] **4. Implement Workflow Control Logic ✅**
+    - [x] 4.1 Implement for loop to control researcher agents executing tasks in plan order (deep_researcher.py)
+    - [x] 4.2 Implement research result accumulation and transfer mechanism (all_research_results.json)
+    - [x] 4.3 Implement data flow between agents (JSON file storage and reading)
+    - [x] 4.4 Integrate reference management system (ReferenceManager)
+
+- [x] **5. Integration and Testing ✅**
+    - [x] 5.1 Integrate all agents into a complete workflow (DeepResearcher class)
+    - [x] 5.2 Improve `main.py` to run deep research application
+    - [x] 5.3 Generate complete example output (example_task folder)
+    - [x] 5.4 Implement interactive research process
+
+#### System Workflow Diagram
 ```mermaid
 flowchart TD
     A[User] -- Submit research question --> B(Planning Agent)
     B -- "Generate research plan, interact with user for modifications" --> A
-    B -- Send final research plan --> C(Commander Agent)
-    C -- "Call researchers in plan order, provide historical summary" --> D(Researcher Agent)
+    B -- Send final research plan --> C[Workflow Control]
+    C -- "for loop: Execute subtasks in plan order" --> D(Researcher Workflow)
     D -- "Internet search, research, generate report" --> C
-    C -- Send report to reflection agent --> E(Reflection Agent)
-    E -- "Judge if modification needed, return suggestions" --> C
-    C -- "If modification needed, send suggestions back to researcher" --> D
-    C -- After all tasks completed, call summarizer agent --> F(Summarizer Agent)
-    F -- "Summarize all reports, generate final report" --> A
+    C -- "Accumulate research results, pass to next iteration" --> D
+    C -- After all tasks completed --> E(Finish Agent)
+    E -- "Aggregate all reports, generate final report" --> A
 
 %% Style definitions
     classDef agentClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef userClass fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef controlClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
     
-    class B,C,D,E,F agentClass
+    class B,D,E agentClass
     class A userClass
+    class C controlClass
 ```
